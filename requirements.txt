@@ -1,0 +1,11 @@
+langchain
+langchain-core
+langchain-groq
+langchain-community
+chromadb
+pandas
+python-dotenv
+transformers
+torch
+termcolor
+JinaAI
