@@ -1,0 +1,73 @@
+2024-10-06 18:56:10,776 - INFO - Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2024-10-06 18:56:11,204 - WARNING - [-] Collection not found: Collection collection1 does not exist.. Creating a new one.
+2024-10-06 18:56:11,204 - INFO - [+] Loading CSV data...
+2024-10-06 18:56:11,206 - ERROR - [-] Error loading the CSV file: [Errno 2] No such file or directory: './file/data.csv'
+2024-10-06 18:56:17,180 - INFO - [+] Splitting documents...
+2024-10-06 18:58:15,916 - INFO - Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2024-10-06 18:58:16,096 - WARNING - [-] Collection not found: Collection collection1 does not exist.. Creating a new one.
+2024-10-06 18:58:16,096 - INFO - [+] Loading CSV data...
+2024-10-06 18:58:16,108 - INFO - [+] CSV data loaded, total rows: 200
+2024-10-06 18:58:16,615 - INFO - [+] Splitting documents...
+2024-10-06 18:58:17,135 - INFO - [+] Document splitting done, 200 chunks total.
+2024-10-06 19:01:42,214 - INFO - Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2024-10-06 19:01:42,385 - INFO - [+] Vectorstore loaded successfully.
+2024-10-06 19:02:15,050 - INFO - [+] Running the RAG chain with query: Courses for Data Science
+2024-10-06 19:02:18,158 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2024-10-06 19:02:18,179 - INFO - [+] Response: Sure, I'd be happy to help you find some data science courses. I have a CSV file with various courses, and I'll search for relevant courses based on your input.
+
+After reviewing the CSV file, here are some suitable courses for data science:
+
+1. Introduction to Data Science with Python
+2. Data Science A-Z: Real-Life Data Science Exercises Included
+3. Machine Learning A-Z: Hands-On Python & R In Data Science
+4. Data Science Methodology: From Idea to Prototype
+5. Deep Learning Specialization
+
+These courses cover various aspects of data science, from introductory to advanced topics, and they are taught using popular programming languages such as Python and R. I hope this helps! Let me know if you need more information on any of these courses.
+2024-10-06 19:07:25,614 - INFO - [+] Running the RAG chain with query: Description of this courses
+2024-10-06 19:07:27,406 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2024-10-06 19:07:27,409 - INFO - [+] Response: To provide a suitable course suggestion, I would need access to the CSV file containing the course data. However, based on the user input "Description of these courses", I cannot suggest any specific courses.
+
+In order for me to provide a suitable course recommendation, please provide more information about the user's learning preferences, such as their level of expertise or specific subjects they are interested in.
+
+For example, if the user is a beginner in data science and interested in machine learning, I could suggest a course like "Introduction to Machine Learning with Python" or "Data Science A-Z".
+
+If no courses match the input, I will respond with "Data not available for this."
+2024-10-06 19:08:50,070 - INFO - [+] Running the RAG chain with query: Give me courses for genai with its description
+2024-10-06 19:08:52,196 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2024-10-06 19:08:52,198 - INFO - [+] Response: Sure, I'd be happy to help! Based on your interest in "genai," I assume you're looking for courses related to General Artificial Intelligence. However, I don't have a CSV file to reference directly. I will provide you with a list of suitable online courses along with their descriptions.
+
+1. Artificial Intelligence (AI) A-Z™: Learn to Build Intelligent Systems!
+   - Description: This course covers everything you need to know to get started in AI, including Deep Learning, Neural Networks, and Reinforcement Learning. It also includes Python and TensorFlow programming.
+
+2. Introduction to Artificial Intelligence (AI)
+   - Description: This course, offered by IBM, provides a broad understanding of the basic techniques for building intelligent computer systems and an understanding of how AI is applied to problems. You will also learn about various AI techniques such as rule-based systems, machine learning, and search algorithms.
+
+3. Artificial Intelligence (AI) Specialization
+   - Description: This series of courses, offered by the University of Washington, covers a range of AI topics including agent-based systems, machine learning, deep learning, and natural language processing. It will equip you with the tools and techniques needed to develop intelligent agents and applications.
+
+4. Deep Learning Specialization
+   - Description: Offered by Andrew Ng on Coursera, this specialization covers deep learning, neural networks, and how to build machine learning projects. You will learn about convolutional neural networks, recurrent neural networks, and how to apply these models to various applications.
+
+5. Artificial Intelligence for Robotics
+   - Description: This course, offered by Georgia Tech, covers the concepts and algorithms used in modern artificial intelligence for robotics. You will learn about motion planning, localization, tracking, and manipulation using probabilistic robotics.
+
+Please note that the availability of these courses and their descriptions are subject to change. I recommend visiting the respective course platforms for the most up-to-date information.
+
+Since I couldn't directly reference a CSV file, I hope this list of online courses related to General Artificial Intelligence is helpful for you. If you have any other preferences or specific areas within AI you'd like to focus on, please let me know!
+2024-10-06 19:10:30,638 - INFO - [+] Running the RAG chain with query: Courses for Data Science
+2024-10-06 19:10:35,005 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2024-10-06 19:10:35,007 - INFO - [+] Response: Sure, I'd be happy to help you find some Data Science courses! Here are a few that might be suitable for you based on the user input:
+
+1. Data Science A-Z: Real-Life Data Science Exercises Included
+2. Data Science: Machine Learning, Data Munging, and Data Visualization
+3. The Data Science Course 2022: Complete Data Science Bootcamp
+4. Data Science Methodology: From Beginner to Advanced
+5. Data Science: Deep Learning and Neural Networks
+
+I hope this helps! Let me know if you have any other questions or if you need further assistance.
+2024-10-06 19:42:28,240 - INFO - Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2024-10-06 19:43:14,458 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2024-10-06 20:55:09,682 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2024-10-06 21:04:54,346 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2024-10-06 21:07:53,723 - INFO - Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
