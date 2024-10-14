@@ -1,187 +1,125 @@
-import streamlit as st
-from os import environ
-from typing import List
-import chromadb
-import pandas as pd
 from dotenv import load_dotenv
-from langchain.chains.combine_documents.stuff import create_stuff_documents_chain
-from langchain.chains.retrieval import create_retrieval_chain
-from langchain.docstore.document import Document
-from langchain_community.embeddings import JinaEmbeddings
-from langchain_community.vectorstores.chroma import Chroma
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import Runnable
-from langchain_core.vectorstores import VectorStoreRetriever
+from langchain_core.runnables import RunnablePassthrough
+from langchain_community.utilities import SQLDatabase
+from langchain_core.output_parsers import StrOutputParser
+from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-import logging
-from transformers import AutoTokenizer
+import streamlit as st
+import os
 
 load_dotenv()
 
-# Constants
-EMBED_MODEL_NAME = "jina-embeddings-v2-base-en"
-LLM_NAME = "mixtral-8x7b-32768"
-LLM_TEMPERATURE = 0.1
-CHUNK_SIZE = 8192
-CSV_FILE_PATH = "./file/data.csv"
-VECTOR_STORE_DIR = "./vectorstore/"
-COLLECTION_NAME = "collection1"
+def init_database(user: str, password: str, host: str, port: str, database: str) -> SQLDatabase:
+    db_uri = f"mysql+mysqlconnector://{user}:{password}@{host}:{port}/{database}"
+    return SQLDatabase.from_uri(db_uri)
 
-# Configure logging
-logging.basicConfig(
-    filename='application.log',
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+def get_sql_chain(db):
+    template = """
+    You are a data analyst at a company. You are interacting with a user who is asking you questions about the company's database.
+    Based on the table schema below, write a SQL query that would answer the user's question. Take the conversation history into account.
 
+    <SCHEMA>{schema}</SCHEMA>
 
-def load_csv_data() -> List[Document]:
-    """Loads the CSV file and converts it to a list of Documents."""
-    try:
-        st.info("[+] Loading CSV data...")
-        df = pd.read_csv(CSV_FILE_PATH)
-        st.info(f"[+] CSV data loaded, total rows: {len(df)}")
+    Conversation History: {chat_history}
 
-        documents = []
-        for _, row in df.iterrows():
-            content = " ".join([f"{col}: {row[col]}" for col in df.columns])
-            documents.append(Document(page_content=content))
+    Write only the SQL query and nothing else. Do not wrap the SQL query in any other text, not even backticks.
 
-        return documents
-    except Exception as e:
-        st.error(f"[-] Error loading the CSV file: {e}")
-        return []
+    Your turn:
 
-
-def chunk_document(documents: List[Document]) -> List[Document]:
-    """Splits the input documents into maximum of CHUNK_SIZE chunks."""
-    tokenizer = AutoTokenizer.from_pretrained(
-        "jinaai/" + EMBED_MODEL_NAME, cache_dir=environ.get("HF_HOME")
-    )
-    text_splitter = RecursiveCharacterTextSplitter.from_huggingface_tokenizer(
-        tokenizer=tokenizer,
-        chunk_size=CHUNK_SIZE,
-        chunk_overlap=CHUNK_SIZE // 50,
-    )
-
-    st.info(f"[+] Splitting documents...")
-    chunks = text_splitter.split_documents(documents)
-    st.info(f"[+] Document splitting done, {len(chunks)} chunks total.")
-
-    return chunks
-
-
-def create_and_store_embeddings(embedding_model: JinaEmbeddings, chunks: List[Document]) -> Chroma:
-    """Calculates the embeddings and stores them in a Chroma vectorstore."""
-    vectorstore = Chroma(
-        embedding_function=embedding_model,
-        collection_name=COLLECTION_NAME,
-        persist_directory=VECTOR_STORE_DIR,
-    )
-
-    batch_size = 166  # Chroma's limit on batch size
-    total_chunks = len(chunks)
-
-    for i in range(0, total_chunks, batch_size):
-        batch_chunks = chunks[i: i + batch_size]
-        ids = [str(i + j) for j in range(len(batch_chunks))]
-        metadatas = [doc.metadata for doc in batch_chunks]
-        embeddings = embedding_model.embed_documents([doc.page_content for doc in batch_chunks])
-
-        vectorstore._collection.upsert(
-            ids=ids,
-            embeddings=embeddings,
-            metadatas=metadatas
-        )
-
-    st.info("[+] Vectorstore created with batched embeddings.")
-    return vectorstore
-
-
-def get_vectorstore_retriever(embedding_model: JinaEmbeddings) -> VectorStoreRetriever:
-    """Returns the vectorstore."""
-    try:
-        vectorstore = Chroma(
-            embedding_function=embedding_model,
-            collection_name=COLLECTION_NAME,
-            persist_directory=VECTOR_STORE_DIR,
-        )
-        retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
-        st.info("[+] Vectorstore loaded successfully.")
-        return retriever
-    except Exception as e:
-        st.warning(f"[-] Collection not found: {e}. Creating a new one.")
-        csv_data = load_csv_data()
-        if not csv_data:
-            st.error("[-] No data available to create a vectorstore.")
-            return None
-        chunks = chunk_document(csv_data)
-        return create_and_store_embeddings(embedding_model, chunks).as_retriever(search_kwargs={"k": 3})
-
-
-def create_rag_chain(embedding_model: JinaEmbeddings, llm: ChatGroq) -> Runnable:
-    """Creates the RAG chain for course recommendations based on user input."""
-    template = """Based on the user's learning preferences, 
-    The user might describe their level of expertise or specific subjects they are interested in.
-
-    <context>
-    {context}
-    </context>
-
-    User Input: {input}
-
-    Please suggest suitable courses for the user, or inform them if no relevant data is available.
-    If no courses match the input, respond with: "Data not available for this."
+    Question: {question}
+    SQL Query:
     """
+
     prompt = ChatPromptTemplate.from_template(template)
 
-    document_chain = create_stuff_documents_chain(llm=llm, prompt=prompt)
+    llm = ChatGroq(model="mixtral-8x7b-32768", temperature=0)
 
-    retriever = get_vectorstore_retriever(embedding_model)
+    def get_schema(_):
+        return db.get_table_info()
 
-    if retriever is None:
-        raise ValueError("[-] Retriever could not be created.")
-
-    retrieval_chain = create_retrieval_chain(retriever, document_chain)
-
-    return retrieval_chain
-
-
-def run_chain(chain: Runnable, query: str) -> str:
-    """Run the RAG chain with the user query."""
-    response = chain.invoke({"input": query})
-    context = response["context"]
-    answer = response["answer"]
-
-    st.markdown(f"**Context:**")
-    for doc in context:
-        st.markdown(f"- {doc.metadata} | {doc.page_content[:50]}...")
-
-    return answer
-
-
-def main() -> None:
-    st.title("Analytical Vidya Course Recommendations")
-
-    embedding_model = JinaEmbeddings(
-        jina_api_key=environ.get("JINA_API_KEY"),
-        model_name=EMBED_MODEL_NAME,
+    return (
+            RunnablePassthrough.assign(schema=get_schema)
+            | prompt
+            | llm
+            | StrOutputParser()
     )
 
-    llm = ChatGroq(temperature=LLM_TEMPERATURE, model_name=LLM_NAME)
+def get_response(user_query: str, db: SQLDatabase, chat_history: list):
+    sql_chain = get_sql_chain(db)
 
-    chain = create_rag_chain(embedding_model=embedding_model, llm=llm)
+    template = """
+    You are a data analyst at a company. You are interacting with a user who is asking you questions about the company's database.
+    Based on the table schema below, question, sql query, and sql response, write a natural language response.the output should be in the format given below
+    **Course Title**
+    **Course Description**
+    **Course Curriculum**
+    **Course URL**
+    <SCHEMA>{schema}</SCHEMA>
 
-    query = st.text_input("Enter your learning preferences:")
-    if st.button("Get Recommendations"):
-        if query:
-            st.info(f"Processing query: {query}")
-            answer = run_chain(chain, query)
-            st.markdown(f"**Recommendation:** {answer}")
-        else:
-            st.error("Please enter a valid query.")
+    Conversation History: {chat_history}
+    SQL Query: <SQL>{query}</SQL>
+    User question: {question}
+    SQL Response: {response}"""
 
+    prompt = ChatPromptTemplate.from_template(template)
 
-if __name__ == "__main__":
-    main()
+    llm = ChatGroq(model="mixtral-8x7b-32768", temperature=0)
+
+    chain = (
+            RunnablePassthrough.assign(query=sql_chain).assign(
+                schema=lambda _: db.get_table_info(),
+                response=lambda vars: db.run(vars["query"]),
+            )
+            | prompt
+            | llm
+            | StrOutputParser()
+    )
+
+    return chain.invoke({
+        "question": user_query,
+        "chat_history": chat_history,
+    })
+
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = [
+        AIMessage(content="Hello! I'm a Course Recommendation System,Search about Free Analyical Vidya Courses"),
+    ]
+
+st.set_page_config(page_title="Analytical Vidya Course Recommendation", page_icon=":speech_balloon:")
+st.title("Analytical Vidya Course Recommendation")
+
+user = os.getenv("DB_USER", "root")
+password = os.getenv("DB_PASSWORD", "Hayat123")
+host = os.getenv("DB_HOST", "localhost")
+port = os.getenv("DB_PORT", "3306")
+database = os.getenv("DB_NAME", "analytics")
+
+if "db" not in st.session_state:
+    with st.spinner("Connecting to the database..."):
+        st.session_state.db = init_database(user, password, host, port, database)
+        st.success("Connected")
+
+for message in st.session_state.chat_history:
+    if isinstance(message, AIMessage):
+        with st.chat_message("AI"):
+            st.markdown(message.content)
+    elif isinstance(message, HumanMessage):
+        with st.chat_message("Human"):
+            st.markdown(message.content)
+
+user_query = st.chat_input("Type a message...")
+if user_query is not None and user_query.strip() != "":
+    st.session_state.chat_history.append(HumanMessage(content=user_query))
+
+    with st.chat_message("Human"):
+        st.markdown(user_query)
+
+    with st.chat_message("AI"):
+        response = get_response(user_query, st.session_state.db, st.session_state.chat_history)
+
+        st.markdown(response)
+
+    st.session_state.chat_history.append(AIMessage(content=response))
+
